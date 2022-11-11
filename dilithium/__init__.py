@@ -5,12 +5,11 @@ import ctypes
 __cdlls = {}
 
 def setup(git_repo_url='https://github.com/pq-crystals/dilithium.git', git_branch='master', version='ref', overwrite_repo=False) -> None:
-    module_path = os.path.dirname(__file__)
-    git_path = os.path.join(module_path, 'dilithium')
-
     if overwrite_repo:
         completed_process = subprocess.run(['rm', '-rf', git_path], capture_output=True, check=True)
         print(completed_process)
+
+    git_path = os.mkdirs('/tmp/python-dilithium-git-repo', exist_ok=True)
 
     completed_process = subprocess.run(['git', 'clone', '--branch', git_branch, git_repo_url, git_path], capture_output=True)
     assert(completed_process.returncode == 0 or b'already exists and is not an empty directory' in completed_process.stderr)
