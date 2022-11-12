@@ -13,7 +13,7 @@ def keypair() -> Tuple[bytes, bytes]:
         git_repo_url='https://github.com/Alex1s/dilithium.git',
         git_branch='attack-shuffling-countermeasure',
         make_env={'RANDOMBYTES_SEED': 'attack-shuffling-countermeasure-keypair'},
-        overwrite_repo=True
+        overwrite_repo=False
     )
     return dilithium.generic.keypair()
 

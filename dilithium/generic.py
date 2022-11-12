@@ -27,15 +27,54 @@ def get_define_name(nist_security_level: int, name: str) -> str:
 def keypair(version: str = 'ref', nist_security_level: int = 3, aes=False) -> Tuple[bytes, bytes]:
     # aes -> version == 'avx2'
     lib = get_lib(version, nist_security_level, aes)
-    function = lib.__getattr__(get_function_name(version, nist_security_level, aes, 'keypair'))
+    f = lib.__getattr__(get_function_name(version, nist_security_level, aes, 'keypair'))
 
-    __logger.debug(__defines)
     pk_buf_len = __defines[get_define_name(nist_security_level, 'PUBLICKEYBYTES')]
     sk_buf_len = __defines[get_define_name(nist_security_level, 'SECRETKEYBYTES')]
 
     pk_buf = (ctypes.c_uint8 * pk_buf_len)()
     sk_buf = (ctypes.c_uint8 * sk_buf_len)()
 
-    function(ctypes.pointer(pk_buf), ctypes.pointer(sk_buf))
+    f(ctypes.pointer(pk_buf), ctypes.pointer(sk_buf))
 
     return bytes(pk_buf), bytes(sk_buf)
+
+
+def signature(message: bytes, secret_key: bytes, version: str = 'ref', nist_security_level: int = 3, aes=False) -> bytes:
+    # aes -> version == 'avx2'
+    lib = get_lib(version, nist_security_level, aes)
+    f = lib.__getattr__(get_function_name(version, nist_security_level, aes, 'signature'))
+
+    signature_length = __defines[get_define_name(nist_security_level, 'BYTES')]
+
+    sig = (ctypes.c_uint8 * signature_length)()
+    siglen = ctypes.c_size_t()
+    m = ctypes.create_string_buffer(message, len(message))
+    mlen = ctypes.c_size_t(len(m))
+    sk = ctypes.create_string_buffer(secret_key, len(secret_key))
+
+    f(ctypes.byref(sig),ctypes.byref(siglen), ctypes.byref(m), mlen, ctypes.byref(sk))
+
+    return bytes(sig[:siglen.value])
+
+def verify(s: bytes, message: bytes, public_key: bytes, version: str = 'ref', nist_security_level: int = 3, aes=False) -> bool:
+    # aes -> version == 'avx2'
+    lib = get_lib(version, nist_security_level, aes)
+    f = lib.__getattr__(get_function_name(version, nist_security_level, aes, 'verify'))
+    f.restype = ctypes.c_int
+
+    sig = ctypes.create_string_buffer(s, len(s))
+    siglen = ctypes.c_size_t(len(s))
+    m = ctypes.create_string_buffer(message, len(message))
+    mlen = ctypes.c_size_t(len(message))
+    pk = ctypes.create_string_buffer(public_key, len(public_key))
+
+    assert bytes(sig) == s
+    assert bytes(m) == message
+    assert bytes(pk) == public_key
+
+    result = f(ctypes.byref(sig), siglen, ctypes.byref(m), mlen, ctypes.byref(pk))
+    __logger.debug(f'siglen: {siglen};result: {result}')
+
+    return result == 0
+
