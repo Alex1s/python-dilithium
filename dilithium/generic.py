@@ -3,7 +3,7 @@ from typing import Tuple
 from ctypes import CDLL
 
 from . import __cdlls
-from . import __defines
+from . import __params
 from . import __logger
 
 def get_base(version: str, nist_security_level: int, aes: bool) -> str:
@@ -29,8 +29,10 @@ def keypair(version: str = 'ref', nist_security_level: int = 3, aes=False) -> Tu
     lib = get_lib(version, nist_security_level, aes)
     f = lib.__getattr__(get_function_name(version, nist_security_level, aes, 'keypair'))
 
-    pk_buf_len = __defines[get_define_name(nist_security_level, 'PUBLICKEYBYTES')]
-    sk_buf_len = __defines[get_define_name(nist_security_level, 'SECRETKEYBYTES')]
+    # pk_buf_len = __defines[get_define_name(nist_security_level, 'PUBLICKEYBYTES')]
+    # sk_buf_len = __defines[get_define_name(nist_security_level, 'SECRETKEYBYTES')]
+    pk_buf_len = __params[nist_security_level]['CRYPTO_PUBLICKEYBYTES']
+    sk_buf_len = __params[nist_security_level]['CRYPTO_SECRETKEYBYTES']
 
     pk_buf = (ctypes.c_uint8 * pk_buf_len)()
     sk_buf = (ctypes.c_uint8 * sk_buf_len)()
@@ -45,7 +47,7 @@ def signature(message: bytes, secret_key: bytes, version: str = 'ref', nist_secu
     lib = get_lib(version, nist_security_level, aes)
     f = lib.__getattr__(get_function_name(version, nist_security_level, aes, 'signature'))
 
-    signature_length = __defines[get_define_name(nist_security_level, 'BYTES')]
+    signature_length = __params[nist_security_level]['CRYPTO_BYTES']
 
     sig = (ctypes.c_uint8 * signature_length)()
     siglen = ctypes.c_size_t()
@@ -77,4 +79,3 @@ def verify(s: bytes, message: bytes, public_key: bytes, version: str = 'ref', ni
     __logger.debug(f'siglen: {siglen};result: {result}')
 
     return result == 0
-

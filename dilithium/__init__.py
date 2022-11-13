@@ -10,6 +10,8 @@ GIT_REPO_URL = 'GIT_REPO_URL'
 GIT_BRANCH = 'GIT_BRANCH'
 RANDOMBYTES_DEFINE = 'RANDOMBYTES_DEFINE'
 
+GIT_PATH = '/tmp/python-dilithium-git-repo'
+
 DEFAULT_GIT_REPO_URL = 'https://github.com/pq-crystals/dilithium.git'
 DEFAULT_GIT_BRANCH = 'master'
 DEFAULT_RANDOMBYTES_DEFINE = "SOMETHING_NOT_DEFINED_HOPEFULLY=WHATEVER"
@@ -22,7 +24,6 @@ def setup(
         git_repo_url: Union[str, None] = None,
         git_branch: Union[str, None] = None,
         randombytes_define: Union[str, None] = None,
-        overwrite_repo: bool = False
 ) -> None:
     global __cdlls, __params
 
@@ -41,21 +42,16 @@ def setup(
     elif randombytes_define is None:
         randombytes_define = DEFAULT_RANDOMBYTES_DEFINE
 
-    __logger.debug(''.join([git_repo_url,git_branch, randombytes_define]))
+    __logger.debug(' '.join([git_repo_url,git_branch, randombytes_define]))
 
-    git_path = '/tmp/python-dilithium-git-repo'
-    if overwrite_repo:
-        completed_process = subprocess.run(['rm', '-rf', git_path], capture_output=True, check=True)
-        __logger.debug(completed_process)
+    os.makedirs(GIT_PATH, exist_ok=True)
 
-    os.makedirs(git_path, exist_ok=True)
-
-    completed_process = subprocess.run(['git', 'clone', '--branch', git_branch, git_repo_url, git_path], capture_output=True)
+    completed_process = subprocess.run(['git', 'clone', '--branch', git_branch, git_repo_url, GIT_PATH], capture_output=True)
     assert(completed_process.returncode == 0 or b'already exists and is not an empty directory' in completed_process.stderr)
     __logger.debug(completed_process)
 
-    ref_path = os.path.join(git_path, 'ref')
-    avx2_path = os.path.join(git_path, 'avx2')
+    ref_path = os.path.join(GIT_PATH, 'ref')
+    avx2_path = os.path.join(GIT_PATH, 'avx2')
 
 
     completed_process = subprocess.run(['/usr/bin/env', 'make', 'shared'], cwd=ref_path, capture_output=True, check=True)
@@ -107,15 +103,6 @@ def setup(
         __logger.debug(f'Loading {name}')
         __cdlls[name] = ctypes.CDLL(so_path)
 
-    # api_path = os.path.join(ref_path, 'api.h')
-    # completed_process = subprocess.run(['gcc', '-E', '-dM' , api_path], check=True, capture_output=True)
-    # output = completed_process.stdout.decode()
-    # lines = output.split('\n')
-    # table = map(lambda line: line.split(' '), lines)
-    # filtered_table = filter(lambda row: len(row) == 3 and row[2].isdigit() and 'pqcrystals' in row[1], table)
-    # __defines = {row[1]: int(row[2]) for row in filtered_table}
-    # __logger.debug(__defines)
-
     # load params
     current_path = os.path.dirname(__file__)
     dump_params_c_path = os.path.join(current_path, 'dump_params.c')
@@ -134,7 +121,5 @@ def setup(
         completed_process = subprocess.run([dump_params_path], check=True, capture_output=True, cwd=ref_path)
         __params[mode] = json.loads(completed_process.stdout.decode())
         __logger.debug(__params[mode])
-
-
 
 setup()
