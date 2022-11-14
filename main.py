@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import logging
 logging.basicConfig(level=logging.DEBUG)
-from dilithium.generic import keypair, signature, verify
+from dilithium.generic import keypair, signature, verify, _unpack_sig
 
 
 def main() -> None:
@@ -18,6 +18,10 @@ def main() -> None:
 
     assert verify_correct
     assert not verify_wrong
+
+    c, z, h = _unpack_sig(sig)
+
+    print('Done!')
 
 if __name__ == '__main__':
     main()

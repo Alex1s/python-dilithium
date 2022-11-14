@@ -1,6 +1,9 @@
 import ctypes
+import struct
 from typing import Tuple
 from ctypes import CDLL
+
+import numpy as np
 
 from . import __cdlls
 from . import __params
@@ -29,8 +32,6 @@ def keypair(version: str = 'ref', nist_security_level: int = 3, aes=False) -> Tu
     lib = get_lib(version, nist_security_level, aes)
     f = lib.__getattr__(get_function_name(version, nist_security_level, aes, 'keypair'))
 
-    # pk_buf_len = __defines[get_define_name(nist_security_level, 'PUBLICKEYBYTES')]
-    # sk_buf_len = __defines[get_define_name(nist_security_level, 'SECRETKEYBYTES')]
     pk_buf_len = __params[nist_security_level]['CRYPTO_PUBLICKEYBYTES']
     sk_buf_len = __params[nist_security_level]['CRYPTO_SECRETKEYBYTES']
 
@@ -71,11 +72,46 @@ def verify(s: bytes, message: bytes, public_key: bytes, version: str = 'ref', ni
     mlen = ctypes.c_size_t(len(message))
     pk = ctypes.create_string_buffer(public_key, len(public_key))
 
-    assert bytes(sig) == s
-    assert bytes(m) == message
-    assert bytes(pk) == public_key
-
     result = f(ctypes.byref(sig), siglen, ctypes.byref(m), mlen, ctypes.byref(pk))
     __logger.debug(f'siglen: {siglen};result: {result}')
 
     return result == 0
+
+
+def __polyvecl_length(nist_security_level: int) -> int:
+    return __params[nist_security_level]['L'] * __params[nist_security_level]['N'] * 4 # 4 bytes = 32 bit
+
+
+def __polyveck_length(nist_security_level: int) -> int:
+    return __params[nist_security_level]['K'] * __params[nist_security_level]['N'] * 4 # 4 bytes = 32 bit
+
+
+def _unpack_sig(s: bytes, version: str = 'ref', nist_security_level: int = 3, aes=False):
+    lib = get_lib(version, nist_security_level, aes)
+    f = lib.__getattr__(get_function_name(version, nist_security_level, aes, 'unpack_sig'))
+    f.restype = ctypes.c_int
+
+    c = ctypes.create_string_buffer(__params[nist_security_level]['SEEDBYTES'])
+    z = ctypes.create_string_buffer(__polyvecl_length(nist_security_level))
+    h = ctypes.create_string_buffer(__polyveck_length(nist_security_level))
+    sig = ctypes.create_string_buffer(s, len(s))
+
+
+    ret = f(ctypes.byref(c), ctypes.byref(z), ctypes.byref(h), ctypes.byref(sig))
+
+    if ret:
+        raise Exception('Malformed signature.')
+
+    k = __params[nist_security_level]['K']
+    l = __params[nist_security_level]['L']
+    n = __params[nist_security_level]['N']
+
+    return_z = np.frombuffer(bytes(z), dtype='int32')
+    return_z.shape = (l, n)
+    return_h = np.frombuffer(bytes(h), dtype='int32')
+    return_h.shape = (k, n)
+    return bytes(c), return_z, return_h
+
+
+
+
