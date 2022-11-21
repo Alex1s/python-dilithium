@@ -113,5 +113,10 @@ def _unpack_sig(s: bytes, version: str = 'ref', nist_security_level: int = 3, ae
     return bytes(c), return_z, return_h
 
 
+def pseudorandombytes_seed(new_seed: bytes) -> None:
+    lib = __cdlls['libpqcrystals_randombytes_ref']
 
+    seed = ctypes.create_string_buffer(new_seed, len(new_seed))
+    seedlen = ctypes.c_size_t(len(new_seed))
 
+    lib.pseudorandombytes_seed(ctypes.byref(seed), seedlen)
