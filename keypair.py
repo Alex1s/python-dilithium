@@ -13,6 +13,12 @@ def main() -> None:
     dilithium.generic.pseudorandombytes_seed(b'attack-shuffling-countermeasure-keypair\x00')
     new_keypair = dilithium.generic.keypair()
     assert keypair == new_keypair
+    dilithium.generic.pseudorandombytes_seed(b'')
+    first_random = dilithium.generic.keypair()
+    assert first_random != keypair
+    dilithium.generic.pseudorandombytes_seed(b'')
+    second_random = dilithium.generic.keypair()
+    assert first_random != second_random
 
     print(keypair)
 
