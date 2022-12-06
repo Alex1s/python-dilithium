@@ -56,7 +56,9 @@ def signature(message: bytes, secret_key: bytes, version: str = 'ref', nist_secu
     mlen = ctypes.c_size_t(len(m))
     sk = ctypes.create_string_buffer(secret_key, len(secret_key))
 
-    f(ctypes.byref(sig),ctypes.byref(siglen), ctypes.byref(m), mlen, ctypes.byref(sk))
+    ret = f(ctypes.byref(sig),ctypes.byref(siglen), ctypes.byref(m), mlen, ctypes.byref(sk))
+
+    assert ret == 0
 
     return bytes(sig[:siglen.value])
 
@@ -111,6 +113,23 @@ def _unpack_sig(s: bytes, version: str = 'ref', nist_security_level: int = 3, ae
     return_h = np.frombuffer(bytes(h), dtype='int32')
     return_h.shape = (k, n)
     return bytes(c), return_z, return_h
+
+def _polyz_unpack(packed_poly: bytes, version: str = 'ref', nist_security_level: int = 3, aes=False) -> np.ndarray:
+    assert len(packed_poly) == __params[nist_security_level]['POLYZ_PACKEDBYTES']
+
+    lib = get_lib(version, nist_security_level, aes)
+    f = lib.__getattr__(get_function_name(version, nist_security_level, aes, 'polyz_unpack'))
+
+    n = __params[nist_security_level]['N']
+
+    r = ctypes.create_string_buffer(n * 4)
+    a = ctypes.create_string_buffer(packed_poly, len(packed_poly))
+
+    f(ctypes.byref(r), ctypes.byref(a))
+
+    unpacked_poly = np.frombuffer(bytes(r), dtype='int32')
+
+    return unpacked_poly
 
 
 def pseudorandombytes_seed(new_seed: bytes) -> None:
