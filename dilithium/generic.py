@@ -115,6 +115,10 @@ def _unpack_sig(s: bytes, version: str = 'ref', nist_security_level: int = 3, ae
     return bytes(c), return_z, return_h
 
 def _polyz_unpack(packed_poly: bytes, version: str = 'ref', nist_security_level: int = 3, aes=False) -> np.ndarray:
+    if len(packed_poly) != __params[nist_security_level]['POLYZ_PACKEDBYTES']:
+        raise ValueError(f'A packed z polynomial for NIST security levek {nist_security_level} consists of ' +
+                         f'{__params[nist_security_level]["POLYZ_PACKEDBYTES"]} bytes. A bytes object of ' +
+                         f'{len(packed_poly)} bytes was given as input.')
     assert len(packed_poly) == __params[nist_security_level]['POLYZ_PACKEDBYTES']
 
     lib = get_lib(version, nist_security_level, aes)
