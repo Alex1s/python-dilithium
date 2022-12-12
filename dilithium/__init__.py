@@ -378,7 +378,7 @@ class Dilithium:
 
         return bytes(list(c)), return_z, return_h
 
-    def _unpck_sig_full(self, s: bytes) -> (np.ndarray, np.ndarray, np.ndarray):
+    def _unpack_sig_full(self, s: bytes) -> (np.ndarray, np.ndarray, np.ndarray):
         challenge_seedbytes, z, h = self.__polyz_unpack(s)
         challenge = self._poly_challange(challenge_seedbytes)
 
