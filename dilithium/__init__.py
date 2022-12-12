@@ -290,6 +290,18 @@ class Dilithium:
         self.__poly_challenge.restype = None
         self.__poly_challenge.argtypes = [ctypes.POINTER(self.__poly_t), self.seedbytes * ctypes.c_uint8]
 
+        self.__unpack_sk = self.__lib.__getattr__(self.__get_function_name('unpack_sk'))
+        self.__unpack_sk.restype = None
+        self.__unpack_sk.argstype = [
+            self.seedbytes * ctypes.c_uint8,
+            self.seedbytes * ctypes.c_uint8,
+            self.seedbytes * ctypes.c_uint8,
+            ctypes.POINTER(self.__polyveck_t),
+            ctypes.POINTER(self.__polyvecl_t),
+            ctypes.POINTER(self.__polyveck_t),
+            self.__CRYPTO_SECRETKEYBYTES * ctypes.c_uint8
+        ]
+
     def __get_base(self, ) -> str:
         base = f'pqcrystals_dilithium{self.__nist_security_level}{"aes" if self.__aes else ""}_{self.__version}'
         return base
@@ -389,6 +401,8 @@ class Dilithium:
         return challenge, z, h
 
     def pseudorandombytes_seed(self, new_seed: bytes) -> None:
+        if type(new_seed) is not bytes:
+            raise ValueError('The seed needs to be of type bytes.')
         seed = (len(new_seed) * ctypes.c_uint8)(*new_seed)
         seedlen = ctypes.c_size_t(len(new_seed))
 
@@ -406,4 +420,25 @@ class Dilithium:
         self.__poly_challenge(ctypes.byref(c), seed)
 
         return np.array(c.coeffs)
+
+    def _unpack_sk(self, secret_key: bytes) -> (bytes, bytes, bytes, np.ndarray, np.ndarray, np.ndarray):
+        rho = (self.seedbytes * ctypes.c_uint8)()
+        tr = (self.seedbytes * ctypes.c_uint8)()
+        key = (self.seedbytes * ctypes.c_uint8)()
+        t0 = self.__polyveck_t()
+        s1 = self.__polyvecl_t()
+        s2 = self.__polyveck_t()
+        sk = (self.__CRYPTO_SECRETKEYBYTES * ctypes.c_uint8)(*secret_key)
+
+        self.__unpack_sk(rho, tr, key, ctypes.byref(t0), ctypes.byref(s1), ctypes.byref(s2), sk)
+
+        return_rho = bytes(list(rho))
+        return_tr = bytes(list(tr))
+        return_key = bytes(list(key))
+        return_t0 = np.vstack([np.array(t0.vec[i].coeffs) for i in range(self._K)])
+        return_s1 = np.vstack([np.array(s1.vec[i].coeffs) for i in range(self._L)])
+        return_s2 = np.vstack([np.array(s2.vec[i].coeffs) for i in range(self._K)])
+
+        return return_rho, return_tr, return_key, return_t0, return_s1, return_s2
+
 
