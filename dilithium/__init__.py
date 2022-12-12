@@ -154,6 +154,35 @@ setup()
 
 
 class Dilithium:
+    @property
+    def n(self) -> int:
+        return self.__params['N']
+
+    @property
+    def eta(self) -> int:
+        return self.__params['ETA']
+
+    @property
+    def tau(self) -> int:
+        return self.__params['TAU']
+
+    @property
+    def beta(self) -> int:
+        return self.eta * self.tau
+
+    @property
+    def _polyz_unpack_coeffs_per_iter(self) -> int:
+        if self.__nist_security_level == 3 or self.__nist_security_level == 5:
+            return 2
+        elif self.__nist_security_level == 2:
+            return 4
+        else:
+            assert False
+
+    @property
+    def _polyz_unpack_num_iters(self) -> int:
+        return self.n // self._polyz_unpack_coeffs_per_iter
+
     def __init__(self, nist_security_level: int = 3, version: str = 'ref', aes: bool = False):
         assert version in ['ref', 'avx2']
         assert nist_security_level in [2, 3, 5]
