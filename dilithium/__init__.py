@@ -183,6 +183,10 @@ class Dilithium:
     def _polyz_unpack_num_iters(self) -> int:
         return self.n // self._polyz_unpack_coeffs_per_iter
 
+    @property
+    def seedbytes(self) -> int:
+        return self.__params['SEEDBYTES']
+
     def __init__(self, nist_security_level: int = 3, version: str = 'ref', aes: bool = False):
         assert version in ['ref', 'avx2']
         assert nist_security_level in [2, 3, 5]
@@ -278,6 +282,10 @@ class Dilithium:
         self.__polyz_pack.restype = None
         self.__polyz_pack.argtypes = [self.__POLYZ_PACKEDBYTES * ctypes.c_uint8, ctypes.POINTER(self.__poly_t)]
 
+        self.__poly_challenge = self.__lib.__getattr__(self.__get_function_name('poly_challenge'))
+        self.__poly_challenge.restype = None
+        self.__poly_challenge.argtypes = [ctypes.POINTER(self.__poly_t), self.seedbytes * ctypes.c_uint8]
+
     def __get_base(self, ) -> str:
         base = f'pqcrystals_dilithium{self.__nist_security_level}{"aes" if self.__aes else ""}_{self.__version}'
         return base
@@ -370,6 +378,12 @@ class Dilithium:
 
         return bytes(list(c)), return_z, return_h
 
+    def _unpck_sig_full(self, s: bytes) -> (np.ndarray, np.ndarray, np.ndarray):
+        challenge_seedbytes, z, h = self.__polyz_unpack(s)
+        challenge = self._poly_challange(challenge_seedbytes)
+
+        return challenge, z, h
+
     def pseudorandombytes_seed(self, new_seed: bytes) -> None:
         seed = (len(new_seed) * ctypes.c_uint8)(*new_seed)
         seedlen = ctypes.c_size_t(len(new_seed))
@@ -378,3 +392,16 @@ class Dilithium:
             ctypes.cast(seed, ctypes.POINTER(ctypes.c_uint8)),
             seedlen
         )
+
+    def _poly_challange(self, seed_as_bytes: bytes) -> np.ndarray:
+        if not (type(seed_as_bytes) is bytes and len(seed_as_bytes) == self.seedbytes):
+            raise ValueError()
+
+        c = self.__poly_t()
+        seed = (self.seedbytes * ctypes.c_uint8)(*seed_as_bytes)
+        print('before call')
+        self.__poly_challenge(ctypes.byref(c), seed)
+        print('after call')
+
+        return np.array(c.coeffs)
+
