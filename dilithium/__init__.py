@@ -399,9 +399,7 @@ class Dilithium:
 
         c = self.__poly_t()
         seed = (self.seedbytes * ctypes.c_uint8)(*seed_as_bytes)
-        print('before call')
         self.__poly_challenge(ctypes.byref(c), seed)
-        print('after call')
 
         return np.array(c.coeffs)
 
