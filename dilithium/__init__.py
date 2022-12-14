@@ -175,6 +175,10 @@ class Dilithium:
         return self.__params['GAMMA1']
 
     @property
+    def l(self) -> int:
+        return self.__params['L']
+
+    @property
     def _polyz_unpack_coeffs_per_iter(self) -> int:
         if self.__nist_security_level == 3 or self.__nist_security_level == 5:
             return 2
