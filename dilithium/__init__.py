@@ -191,6 +191,10 @@ class Dilithium:
     def seedbytes(self) -> int:
         return self.__params['SEEDBYTES']
 
+    @property
+    def nist_security_level(self) -> int:
+        return self.__nist_security_level
+
     def __init__(self, nist_security_level: int = 3, version: str = 'ref', aes: bool = False):
         assert version in ['ref', 'avx2']
         assert nist_security_level in [2, 3, 5]
