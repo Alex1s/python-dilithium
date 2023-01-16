@@ -263,6 +263,18 @@ class Dilithium:
             self.__sk_t
         ]
 
+        self.__signature_faulted = self.__lib.__getattr__(self.__get_function_name('signature_faulted'))
+        self.__signature_faulted.restype = ctypes.c_int
+        self.__signature_faulted.argtypes = [
+            self.__sig_t,
+            ctypes.POINTER(ctypes.c_size_t),
+            ctypes.POINTER(ctypes.c_uint8),
+            ctypes.c_size_t,
+            self.__sk_t,
+            ctypes.c_uint,
+            ctypes.c_uint
+        ]
+
         self.__verify = self.__lib.__getattr__(self.__get_function_name('verify'))
         self.__verify.restype = ctypes.c_int
         self.__verify.argtypes = [
@@ -351,6 +363,31 @@ class Dilithium:
         assert siglen.value == self.__CRYPTO_BYTES
 
         return bytes(list(sig))
+
+    def signature_faulted(self, message: bytes, secret_key: bytes, polyvec_index: int, poly_index: int) -> (bytes, int):
+        assert len(secret_key) == self.__CRYPTO_SECRETKEYBYTES
+
+        sig = self.__sig_t()
+        siglen = ctypes.c_size_t()
+        m = (len(message) * ctypes.c_uint8)(*message)
+        mlen = ctypes.c_size_t(len(m))
+        sk = self.__sk_t(*secret_key)
+        polyvec_i = ctypes.c_uint(polyvec_index)
+        poly_i = ctypes.c_uint(poly_index)
+
+        ret = self.__signature_faulted(
+            sig,
+            ctypes.byref(siglen),
+            ctypes.cast(ctypes.byref(m), ctypes.POINTER(ctypes.c_uint8)),
+            mlen,
+            sk,
+            polyvec_i,
+            poly_i
+        )
+        assert ret >= 0
+        assert siglen.value == self.__CRYPTO_BYTES
+
+        return bytes(list(sig)), ret
 
     def verify(self, s: bytes, message: bytes, public_key: bytes) -> bool:
         assert len(s) == self.__CRYPTO_BYTES
