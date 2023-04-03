@@ -5,6 +5,7 @@ import ctypes
 import logging
 import ctypes
 import numpy as np
+import platform
 
 from typing import Union
 
@@ -52,20 +53,25 @@ def setup(
     os.makedirs(GIT_PATH, exist_ok=True)
 
     completed_process = subprocess.run(['git', 'clone', '--branch', git_branch, git_repo_url, GIT_PATH], capture_output=True)
-    assert(completed_process.returncode == 0 or b'already exists and is not an empty directory' in completed_process.stderr)
+    assert(completed_process.returncode == 0 or b'already exists and is not an empty directory' in completed_process.stderr or b'existiert bereits und ist kein leeres Verzeichnis' in completed_process.stderr), completed_process.stderr + f' (ret: {completed_process.returncode})'.encode()
     _logger.debug(completed_process)
 
     ref_path = os.path.join(GIT_PATH, 'ref')
     avx2_path = os.path.join(GIT_PATH, 'avx2')
 
+    if platform.system() == 'Darwin':
+        make_shared = ['/usr/bin/env', 'make', 'shared', 'CFLAGS=-Wl,-undefined,dynamic_lookup -march=native']
+    else:
+        make_shared = ['/usr/bin/env', 'make', 'shared']
+    _logger.debug('make_shared = {make_shared}')
 
-    completed_process = subprocess.run(['/usr/bin/env', 'make', 'shared'], cwd=ref_path, capture_output=True, check=True)
+    completed_process = subprocess.run(make_shared, cwd=ref_path, capture_output=True, check=True)
     _logger.debug(completed_process)
 
     completed_process = subprocess.run(['/usr/bin/env', 'gcc', '-shared', '-fPIC', f'-D{randombytes_define}', '-o', 'libpqcrystals_randombytes_ref.so', 'randombytes.c'], cwd=ref_path, capture_output=True, check=True)
     _logger.debug(completed_process)
 
-    completed_process = subprocess.run(['/usr/bin/env', 'make', 'shared'], cwd=avx2_path, capture_output=True, check=True)
+    completed_process = subprocess.run(make_shared, cwd=avx2_path, capture_output=True, check=True)
     _logger.debug(completed_process)
 
     ref_so_paths = [dir_entry.path for dir_entry in os.scandir(ref_path) if dir_entry.name.endswith('.so')]
