@@ -15,8 +15,8 @@ RANDOMBYTES_DEFINE = 'RANDOMBYTES_DEFINE'
 
 GIT_PATH = '/tmp/python-dilithium-git-repo'
 
-DEFAULT_GIT_REPO_URL = 'https://github.com/pq-crystals/dilithium.git'
-DEFAULT_GIT_BRANCH = 'master'
+DEFAULT_GIT_REPO_URL = 'https://github.com/alex1s/dilithium.git'
+DEFAULT_GIT_BRANCH = 'shuffling'
 DEFAULT_RANDOMBYTES_DEFINE = "SOMETHING_NOT_DEFINED_HOPEFULLY=WHATEVER"
 
 __name__ = 'dilithium'
@@ -61,14 +61,16 @@ def setup(
 
     if platform.system() == 'Darwin':
         make_shared = ['/usr/bin/env', 'make', 'shared', 'CFLAGS=-Wl,-undefined,dynamic_lookup -march=native']
+        compile_randombytes = ['/usr/bin/env', 'gcc', '-shared', '-fPIC', '-Wl,-undefined,dynamic_lookup', f'-D{randombytes_define}', '-o', 'libpqcrystals_randombytes_ref.so', 'randombytes.c']
     else:
         make_shared = ['/usr/bin/env', 'make', 'shared']
+        compile_randombytes = ['/usr/bin/env', 'gcc', '-shared', '-fPIC', f'-D{randombytes_define}', '-o', 'libpqcrystals_randombytes_ref.so', 'randombytes.c']
     _logger.debug('make_shared = {make_shared}')
 
     completed_process = subprocess.run(make_shared, cwd=ref_path, capture_output=True, check=True)
     _logger.debug(completed_process)
 
-    completed_process = subprocess.run(['/usr/bin/env', 'gcc', '-shared', '-fPIC', f'-D{randombytes_define}', '-o', 'libpqcrystals_randombytes_ref.so', 'randombytes.c'], cwd=ref_path, capture_output=True, check=True)
+    completed_process = subprocess.run(compile_randombytes, cwd=ref_path, capture_output=True, check=True)
     _logger.debug(completed_process)
 
     completed_process = subprocess.run(make_shared, cwd=avx2_path, capture_output=True, check=True)
