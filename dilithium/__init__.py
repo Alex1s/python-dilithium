@@ -67,7 +67,7 @@ def setup(
         compile_randombytes = ['/usr/bin/env', 'gcc', '-shared', '-fPIC', f'-D{randombytes_define}', '-o', 'libpqcrystals_randombytes_ref.so', 'randombytes.c']
     _logger.debug('make_shared = {make_shared}')
 
-    completed_process = subprocess.run(make_shared, cwd=ref_path, capture_output=True, check=True)
+    completed_process = subprocess.run(make_shared, cwd=ref_path, capture_output=True, check=True, env={**os.environ, **{'CFLAGS': '-DSHUFFLE'}})
     _logger.debug(completed_process)
 
     completed_process = subprocess.run(compile_randombytes, cwd=ref_path, capture_output=True, check=True)
